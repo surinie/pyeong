@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>평(坪)</title>
+<style>
+@font-face {
+  font-family: 'BookkGothic';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkGothic-Lt.woff2') format('woff2');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'BookkGothic';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkGothic-Bd.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --yellow: #FFF001;
+  --paper: #F6F6F6;
+  --ink: #000;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--yellow);
+  font-family: 'BookkGothic', sans-serif;
+  color: var(--ink);
+}
+
+/* 1728 x 1117 기준. --s = 화면 / 디자인 비율 (JS에서 갱신) */
+:root { --s: 1; }
+
+/* 도형: 왼쪽 아래 고정 */
+#shapes {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 1728px;
+  height: 1117px;
+  transform: scale(var(--s));
+  transform-origin: 0 100%;
+  overflow: visible;
+}
+
+/* 헤더: 왼쪽 위 고정 */
+.header {
+  position: fixed;
+  left: calc(77px * var(--s));
+  top: calc(70px * var(--s));
+  display: flex;
+  align-items: baseline;
+  transform: scale(var(--s));
+  transform-origin: 0 0;
+}
+.title {
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--ink);
+}
+.subtitle {
+  margin-left: 33px;
+  font-weight: 300;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: -0.2px;
+  transition: opacity .18s ease;
+  white-space: nowrap;
+}
+.subtitle.out { opacity: 0; }
+
+/* 시작하기: 오른쪽 아래 고정 */
+.start {
+  position: fixed;
+  right: calc(73px * var(--s));
+  bottom: calc(64px * var(--s));
+  height: 161px;
+  transform: scale(var(--s));
+  transform-origin: 100% 100%;
+  display: flex;
+  align-items: stretch;
+  text-decoration: none;
+  color: var(--ink);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+}
+.start .bar {
+  width: 2px;
+  background: var(--ink);
+  transition: transform .3s ease;
+  transform-origin: top;
+}
+.start .label {
+  margin-left: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-weight: 300;
+  font-size: 30px;
+  line-height: 1;
+  padding: 12px 0 8px;
+}
+.start .label span { display: block; white-space: nowrap; }
+.start:hover .label { font-weight: 700; }
+</style>
+</head>
+<body>
+
+  <svg id="shapes" viewBox="0 0 1728 1117" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#F6F6F6" stroke="none">
+      <path id="qFill"/>
+      <path id="aFill"/>
+      <path id="bFill"/>
+    </g>
+    <g fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="butt">
+      <path id="qLine"/>
+      <path id="aLine"/>
+      <path id="bLine"/>
+    </g>
+  </svg>
+
+  <div class="header">
+    <h1 class="title">평(坪)</h1>
+    <p class="subtitle" id="subtitle">좁은 방에 사는 사람들은 모두 미니멀리스트가 된다.</p>
+  </div>
+
+  <button class="start" type="button" aria-label="시작하기">
+    <span class="bar"></span>
+    <span class="label"><span>시</span><span>작</span><span>하</span><span>기</span></span>
+  </button>
+
+<script>
+(() => {
+  /* ---------- 화면 맞춤 ---------- */
+  const W = 1728, H = 1117;
+  function fit() {
+    const s = Math.min(innerWidth / W, innerHeight / H);
+    document.documentElement.style.setProperty('--s', s);
+  }
+  addEventListener('resize', fit); fit();
+
+  /* ---------- 장면 정의 (고정점: 왼쪽 아래) ----------
+     A : 왼쪽 사각형 (오른쪽 위 모서리에 1/4 타원이 붙음)
+     B : A 오른쪽에 붙는 사각형
+     값: A의 너비/높이, B의 너비/높이 */
+  const X0 = 77, Y0 = 1053;           // 고정점
+  const RX = 272, RY = 220;           // 1/4 타원 반지름 (고정)
+  const R = 10;                       // 흰 면 border-radius (모든 도형 동일)
+
+  const scenes = [
+    { aw: 838,  ah: 677, bw: 335, bh: 418, r: R,
+      text: '좁은 방에 사는 사람들은 모두 미니멀리스트가 된다.' },
+    { aw: 473,  ah: 362, bw: 713, bh: 804, r: R,
+      text: '짐을 줄이고, 욕심을 줄이고, 기대를 줄인다.' },
+    { aw: 1185, ah: 562, bw: 0,   bh: 562, r: R,
+      text: '줄일 것이 없어지면 그 다음은 사람 차례다.' }
+  ];
+
+  const MORPH = 1500;   // 변형 시간(ms)
+  const HOLD  = 1400;   // 정지 시간(ms)
+  const TEXT_LEAD = 730; // 변형 완료 몇 ms 전에 텍스트 전환 시작
+
+  const $ = id => document.getElementById(id);
+  const qFill = $('qFill'), qLine = $('qLine');
+  const aFill = $('aFill'), aLine = $('aLine');
+  const bFill = $('bFill'), bLine = $('bLine');
+  const subtitle = $('subtitle');
+
+  /* ---------- 도형 경로 ---------- */
+  function rrect(x, y, w, h, r) {
+    if (w <= 0 || h <= 0) return '';
+    r = Math.min(r, w / 2, h / 2);
+    return `M${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}` +
+           `V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}` +
+           `H${x + r}Q${x},${y + h} ${x},${y + h - r}V${y + r}Q${x},${y} ${x + r},${y}Z`;
+  }
+
+  // 모서리마다 끊긴 선 (레퍼런스의 모서리 틈 표현)
+  function edges(x, y, w, h, g) {
+    let d = '';
+    if (w > g * 2) {
+      d += `M${x + g},${y}H${x + w - g}`;
+      d += `M${x + g},${y + h}H${x + w - g}`;
+    }
+    if (h > g * 2) {
+      d += `M${x},${y + g}V${y + h - g}`;
+      d += `M${x + w},${y + g}V${y + h - g}`;
+    }
+    return d;
+  }
+
+  function quarter(cx, cy) {
+    // 오른쪽 위 직각 모서리도 같은 R로 둥글게
+    const tc = Math.acos(R / RX);
+    const pc = [cx - RX * Math.cos(tc), cy - RY * Math.sin(tc)];
+    const fill = `M${cx - R},${cy}H${cx - RX}A${RX},${RY} 0 0 1 ${pc[0]},${pc[1]}` +
+             `Q${cx},${cy - RY} ${cx},${cy - RY + R}` +
+             `V${cy - R}Q${cx},${cy} ${cx - R},${cy}Z`;
+    // 호의 양 끝에 작은 틈
+    const t0 = Math.asin(15 / RY);
+    const t1 = Math.acos(9 / RX);
+    const p0 = [cx - RX * Math.cos(t0), cy - RY * Math.sin(t0)];
+    const p1 = [cx - RX * Math.cos(t1), cy - RY * Math.sin(t1)];
+    const line = `M${p0[0]},${p0[1]}A${RX},${RY} 0 0 1 ${p1[0]},${p1[1]}` +
+                 `M${cx},${cy - RY}V${cy - 15}`;
+    return { fill, line };
+  }
+
+  function render(s) {
+    const ax = X0, ay = Y0 - s.ah;
+    const g = s.r + 4;
+
+    aFill.setAttribute('d', rrect(ax, ay, s.aw, s.ah, s.r));
+    aLine.setAttribute('d', edges(ax, ay, s.aw, s.ah, g));
+
+    const q = quarter(ax + s.aw, ay);
+    qFill.setAttribute('d', q.fill);
+    qLine.setAttribute('d', q.line);
+
+    const bx = ax + s.aw, by = Y0 - s.bh;
+    const bOp = Math.max(0, Math.min(1, s.bw / 40));
+    bFill.setAttribute('d', rrect(bx, by, s.bw, s.bh, s.r));
+    bLine.setAttribute('d', edges(bx, by, s.bw, s.bh, g));
+    bFill.style.opacity = bOp;
+    bLine.style.opacity = bOp;
+  }
+
+  /* ---------- 타임라인 ---------- */
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const mix = (p, q, t) => ({
+    aw: lerp(p.aw, q.aw, t), ah: lerp(p.ah, q.ah, t),
+    bw: lerp(p.bw, q.bw, t), bh: lerp(p.bh, q.bh, t),
+    r:  lerp(p.r,  q.r,  t)
+  });
+
+  const STEP = HOLD + MORPH;           // 정지 → 변형 순서
+  let shown = 0;                        // 현재 표시 중인 텍스트 장면
+  let start = null;
+
+  function setText(i) {
+    if (i === shown) return;
+    shown = i;
+    subtitle.classList.add('out');
+    setTimeout(() => {
+      subtitle.textContent = scenes[i].text;
+      subtitle.classList.remove('out');
+    }, 150);
+  }
+
+  // 변형 끝부분에 텍스트가 바뀌도록 살짝 앞당겨 페이드아웃 시작
+  function frame(now) {
+    if (start === null) start = now;
+    const t = (now - start) % (STEP * scenes.length);
+    const i = Math.floor(t / STEP);
+    const local = t - i * STEP;
+    const from = scenes[i], to = scenes[(i + 1) % scenes.length];
+
+    if (local < HOLD) {
+      render(from);
+      setText(i);
+    } else {
+      const k = (local - HOLD) / MORPH;
+      render(mix(from, to, ease(k)));
+      if (local >= STEP - TEXT_LEAD) setText((i + 1) % scenes.length);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  render(scenes[0]);
+  requestAnimationFrame(frame);
+})();
+   document.querySelector('.start').addEventListener('click', () => {
+    location.href = 'chapter.html';
+  });
+</script>
+</body>
+</html>
